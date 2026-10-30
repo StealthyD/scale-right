@@ -1,0 +1,110 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Interactive 3D Brain Map | Scale Right</title>
+<meta property="og:title" content="Interactive 3D Map of the Human Brain"><meta name="description" content="Rotate, zoom and tap regions of the human brain to learn what they do.">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#05070d;color:#e8ecf5;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+#c{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:16px;left:20px;right:20px;pointer-events:none}
+h1{margin:0;font-size:clamp(18px,3vw,28px);font-weight:700;letter-spacing:-.02em;background:linear-gradient(90deg,#8be9ff,#c79bff);-webkit-background-clip:text;color:transparent}
+header p{margin:4px 0 0;font-size:13px;color:#8a93a8}
+#panel{position:fixed;right:20px;top:90px;width:320px;background:rgba(15,20,35,.72);backdrop-filter:blur(14px);border:1px solid rgba(140,170,255,.18);border-radius:16px;padding:18px;transition:.3s}
+#panel h2{margin:0 0 6px;font-size:20px}#panel .tag{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#8be9ff}#panel p{font-size:14px;line-height:1.5;color:#c8cfdd;margin:8px 0 0}
+#chips{position:fixed;left:20px;top:90px;display:flex;flex-direction:column;gap:6px}
+.chip{border:1px solid rgba(140,170,255,.2);background:rgba(15,20,35,.6);color:#dfe5f2;border-radius:999px;padding:6px 12px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:8px;text-align:left}
+.chip i{width:10px;height:10px;border-radius:50%;display:inline-block}.chip.on{border-color:#8be9ff;background:rgba(60,90,160,.45)}
+#xray{margin-top:8px}
+footer{position:fixed;bottom:10px;left:20px;right:20px;font-size:11px;color:#6c7488}footer a{color:#8be9ff}
+@media(max-width:760px){#panel{left:12px;right:12px;width:auto;top:auto;bottom:34px;padding:14px}#panel p{font-size:13px}#chips{top:auto;bottom:auto;left:0;right:0;top:70px;flex-direction:row;overflow-x:auto;padding:0 12px;flex-wrap:nowrap}.chip{white-space:nowrap}header{left:12px}footer{left:12px;font-size:10px}}
+body.rec header,body.rec #chips,body.rec footer{display:none}body.rec #panel{left:60px;right:60px;width:auto;top:auto;bottom:60px;font-size:22px}body.rec #panel h2{font-size:38px}body.rec #panel p{font-size:24px}body.rec #panel .tag{font-size:18px}
+#title2{display:none}body.rec #title2{display:block;position:fixed;top:50px;left:0;right:0;text-align:center;font-size:44px;font-weight:800;background:linear-gradient(90deg,#8be9ff,#c79bff);-webkit-background-clip:text;color:transparent}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="title2">The Human Brain, Mapped</div>
+<header><h1>The Human Brain, Mapped</h1><p>Drag to rotate · pinch/scroll to zoom · tap a region</p></header>
+<div id="chips"></div>
+<div id="panel"><div class="tag" id="ptag">Explore</div><h2 id="ptitle">Tap any region</h2><p id="ptext">This stylized model divides the brain into its major regions. Select one to highlight it and learn what it does. Use “X-ray” to see deep structures like the hippocampus and amygdala.</p></div>
+<footer>Stylized 3D model built procedurally with three.js (not anatomically exact; for education). Built by <a href="https://scaleright.ca">Dan Ebanks · Scale Right</a>. Descriptions simplified from standard neuroanatomy texts.</footer>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const R={
+frontal:{n:'Frontal lobe',c:0x4f8cff,t:'Cerebral cortex',d:'Planning, decision-making, working memory, personality and impulse control (prefrontal cortex). Broca’s area, usually in the left frontal lobe, supports speech production.'},
+motor:{n:'Primary motor cortex',c:0xff5d8f,t:'Precentral gyrus · frontal lobe',d:'Sends commands that drive voluntary movement. It is mapped body-part by body-part (the motor homunculus), and each hemisphere controls the opposite side of the body.'},
+sensory:{n:'Primary somatosensory cortex',c:0xffb547,t:'Postcentral gyrus · parietal lobe',d:'Receives touch, pressure, temperature, pain and body-position signals, mapped across the body (the sensory homunculus), again for the opposite side.'},
+parietal:{n:'Parietal lobe',c:0x3ddc97,t:'Cerebral cortex',d:'Integrates sensory information to build a sense of space and where the body is. It is involved in attention, navigation, reading and numerical reasoning.'},
+temporal:{n:'Temporal lobe',c:0xb388ff,t:'Cerebral cortex',d:'Hearing (primary auditory cortex), language comprehension (Wernicke’s area, usually left), recognizing faces and objects, and memory, working with the hippocampus beneath it.'},
+occipital:{n:'Occipital lobe',c:0x29d3e6,t:'Cerebral cortex',d:'The brain’s visual centre. The primary visual cortex processes signals from the eyes, including edges, colour and motion, before passing them on for recognition.'},
+cerebellum:{n:'Cerebellum',c:0xff7a45,t:'Hindbrain',d:'Coordinates movement, balance, posture and timing, and supports motor learning. It holds over half of the brain’s neurons in about 10% of its volume.'},
+brainstem:{n:'Brainstem',c:0xd7dde8,t:'Midbrain · pons · medulla',d:'Connects the brain to the spinal cord and runs automatic functions such as breathing, heart rate, blood pressure, swallowing and sleep–wake cycles. Most cranial nerves arise here.'},
+hippocampus:{n:'Hippocampus',c:0xffe066,t:'Limbic system · deep in temporal lobe',d:'Essential for forming new long-term memories of facts and events and for spatial navigation. One of the few regions where new neurons may form in adults.'},
+amygdala:{n:'Amygdala',c:0xff4d4d,t:'Limbic system · front of hippocampus',d:'An almond-shaped cluster that detects threats and emotional significance. It drives fear responses and tags memories with emotional weight.'}};
+const keys=Object.keys(R);
+const rec=new URLSearchParams(location.search).has('record');if(rec)document.body.classList.add('rec');
+const canvas=document.getElementById('c');const renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:rec});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.toneMapping=THREE.ACESFilmicToneMapping;
+const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x05070d,.03);
+const cam=new THREE.PerspectiveCamera(40,1,.1,100);cam.position.set(-6.5,2.2,5.5);
+const ctl=new OrbitControls(cam,canvas);ctl.enableDamping=true;ctl.minDistance=4;ctl.maxDistance=16;ctl.autoRotate=true;ctl.autoRotateSpeed=.8;ctl.target.set(0,0.1,0);
+scene.add(new THREE.HemisphereLight(0x9fc4ff,0x221133,1.1));const dl=new THREE.DirectionalLight(0xffffff,1.6);dl.position.set(-4,6,5);scene.add(dl);const rl=new THREE.DirectionalLight(0x8be9ff,1.2);rl.position.set(5,-2,-6);scene.add(rl);
+// noise
+function h(x,y,z){return Math.sin(x*3.1+Math.sin(y*2.3))*Math.sin(y*3.7+Math.sin(z*2.9))*Math.sin(z*3.3+Math.sin(x*2.1));}
+function gyri(x,y,z){let s=0,a=1,f=1;for(let i=0;i<3;i++){s+=a*Math.abs(h(x*f,y*f,z*f));a*=.5;f*=2.1;}return s;}
+const meshes=[];const base=new THREE.Color(0xcfa7a8);
+function regionCortex(x,y,z){ // x: front(-)/back(+)? use z forward
+ // z>0 front. y up. x lateral
+ const cs=0.15-0.35*y; // central sulcus slanted
+ if(y<-0.15&&z>-1.6&&z<1.3&&Math.abs(x)>0.55)return 'temporal';
+ if(z<-1.35+0.2*y)return 'occipital';
+ if(z>cs+0.28)return 'frontal'; if(z>cs)return 'motor'; if(z>cs-0.28)return 'sensory'; return 'parietal';}
+function makeHemi(side){const g=new THREE.SphereGeometry(1,220,160);const p=g.attributes.position;const reg=[];const col=new Float32Array(p.count*3);
+ for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+  let X=x*1.0,Y=y*1.15,Z=z*2.05; // ellipsoid
+  if(Y<0)Y*=0.75; X=Math.abs(X)*side; // squash bottom
+  // temporal bulge
+  const tb=Math.exp(-((Y+0.5)**2)/.12-((Z-0.2)**2)/1.2); X+=side*0.18*tb; Y-=0.25*tb*(Math.abs(x));
+  if(Y<-0.3&&Z<0.8&&Z>-1.0&&Math.abs(x)<.5)Y=-0.3+(Y+0.3)*0.4;
+  const g1=gyri(X*1.6,Y*1.6,Z*1.6);const k=1+0.045*g1-0.04;X*=k;Y*=k;Z*=k;
+  X+=side*0.06; // fissure gap
+  p.setXYZ(i,X,Y+0.35,Z);
+  const r=regionCortex(X,Y,Z);reg.push(r);}
+ g.computeVertexNormals();g.setAttribute('color',new THREE.BufferAttribute(col,3));
+ const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.55,metalness:.05,transparent:true}));m.userData.reg=reg;m.userData.kind='cortex';scene.add(m);meshes.push(m);return m;}
+const hemis=[makeHemi(1),makeHemi(-1)];
+function blob(geo,key,pos,scale,rot){const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:base,roughness:.5,transparent:true}));m.position.set(...pos);m.scale.set(...scale);if(rot)m.rotation.set(...rot);m.userData.key=key;scene.add(m);meshes.push(m);return m;}
+// cerebellum with folia
+const cg=new THREE.SphereGeometry(1,160,100);{const p=cg.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);const k=1+0.02*Math.sin(y*75)-0.08*Math.exp(-x*x/.02);p.setXYZ(i,x*k,y*k,z*k);}cg.computeVertexNormals();}
+blob(cg,'cerebellum',[0,-0.75,-1.45],[1.25,.62,.72]);
+const bs=new THREE.CylinderGeometry(.34,.24,1.5,48,8);blob(bs,"brainstem",[0,-0.95,-0.45],[1,1,1],[0.35,0,0]);
+// deep structures
+const hc=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,.35),new THREE.Vector3(0,.05,-.2),new THREE.Vector3(0,.3,-.7),new THREE.Vector3(0,.6,-.9)]),40,.11,16);
+const am=new THREE.SphereGeometry(.17,32,24);
+for(const s of[1,-1]){blob(hc,'hippocampus',[s*0.75,-0.25,0],[1,1,1]).userData.deep=1;blob(am,'amygdala',[s*0.72,-0.28,0.6],[1,1,1.3]).userData.deep=1;}
+let sel=null,xray=false,hover=null;
+function paint(){const tc=new THREE.Color();for(const m of meshes){
+ if(m.userData.kind==='cortex'){const a=m.geometry.attributes.color;const reg=m.userData.reg;for(let i=0;i<reg.length;i++){const r=reg[i];if(sel===r)tc.setHex(R[r].c);else{tc.copy(base);if(sel)tc.multiplyScalar(.68);if(hover===r)tc.lerp(new THREE.Color(R[r].c),.35);}a.setXYZ(i,tc.r,tc.g,tc.b);}a.needsUpdate=true;
+  const op=xray||(sel&&R[sel]&&['hippocampus','amygdala'].includes(sel))?0.18:1;m.material.opacity=op;m.material.depthWrite=op===1;}
+ else{const k=m.userData.key;m.material.color.copy(sel===k?new THREE.Color(R[k].c):base.clone().multiplyScalar(sel?.68:1));if(hover===k&&sel!==k)m.material.color.lerp(new THREE.Color(R[k].c),.35);m.material.emissive=new THREE.Color(sel===k?R[k].c:0).multiplyScalar(.25);m.visible=!m.userData.deep||xray||sel===k;}}}
+const chips=document.getElementById('chips');
+function select(k){sel=k;document.querySelectorAll('.chip[data-k]').forEach(c=>c.classList.toggle('on',c.dataset.k===k));
+ if(k){ptag.textContent=R[k].t;ptitle.textContent=R[k].n;ptitle.style.color='#'+R[k].c.toString(16).padStart(6,'0');ptext.textContent=R[k].d;}paint();}
+for(const k of keys){const b=document.createElement('button');b.className='chip';b.dataset.k=k;b.innerHTML=`<i style="background:#${R[k].c.toString(16).padStart(6,'0')}"></i>${R[k].n}`;b.onclick=()=>select(sel===k?null:k);chips.appendChild(b);}
+const xb=document.createElement('button');xb.className='chip';xb.id='xray';xb.textContent='◎ X-ray: off';xb.onclick=()=>{xray=!xray;xb.textContent='◎ X-ray: '+(xray?'on':'off');xb.classList.toggle('on',xray);paint();};chips.appendChild(xb);
+const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();
+function pick(e){const r=canvas.getBoundingClientRect();ptr.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ptr,cam);
+ const vis=meshes.filter(m=>m.visible);const hits=ray.intersectObjects(vis);if(!hits.length)return null;
+ let h=hits.find(x=>x.object.userData.deep)||hits[0];if((xray)&&hits.some(x=>x.object.userData.key))h=hits.find(x=>x.object.userData.key)||h;
+ if(h.object.userData.kind==='cortex')return h.object.userData.reg[h.face.a];return h.object.userData.key;}
+let down=null;canvas.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];ctl.autoRotate=false;});
+canvas.addEventListener('pointerup',e=>{if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])<6){const k=pick(e);select(k&&k!==sel?k:null);}down=null;});
+canvas.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const k=pick(e);if(k!==hover){hover=k;canvas.style.cursor=k?'pointer':'grab';paint();}});
+// particles
+const pg=new THREE.BufferGeometry();const pp=new Float32Array(1500*3);for(let i=0;i<pp.length;i++)pp[i]=(Math.random()-.5)*30;pg.setAttribute('position',new THREE.BufferAttribute(pp,3));scene.add(new THREE.Points(pg,new THREE.PointsMaterial({color:0x6b8cff,size:.04,transparent:true,opacity:.6})));
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();if(w<760){cam.position.setLength(10.5);}}addEventListener('resize',resize);resize();
+paint();
+if(rec){ // deterministic frame renderer for video capture
+ const order=['frontal','motor','sensory','parietal','temporal','occipital','cerebellum','brainstem','hippocampus','amygdala'];
+ window.renderAt=(t,T)=>{const a=t/T*Math.PI*2;cam.position.set(Math.sin(a-0.9)*7.6,2.0,Math.cos(a-0.9)*7.6);cam.lookAt(0,-0.15,0);
+  const k=order[Math.min(order.length-1,Math.floor(t/T*order.length))];if(k!==sel){xray=['hippocampus','amygdala'].includes(k);select(k);}renderer.render(scene,cam);return true;};
+ window.ready=true;
+}else{(function loop(){ctl.update();renderer.render(scene,cam);requestAnimationFrame(loop);})();}
+</script></body></html>
