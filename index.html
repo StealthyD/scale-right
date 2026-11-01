@@ -261,5 +261,6 @@ mq.addEventListener&&mq.addEventListener('change',sync);sync()})();</script>
 <div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;display:none;z-index:999">Email copied: ebanks.daniel@gmail.com</div>
 <script>document.querySelectorAll('a[href^="mailto:"]').forEach(a=>a.addEventListener('click',()=>{try{navigator.clipboard.writeText('ebanks.daniel@gmail.com')}catch(e){}const t=document.getElementById('toast');t.style.display='block';setTimeout(()=>t.style.display='none',4000)}));</script>
 <script>(function(){var b=document.getElementById('emailBtn'),m=document.getElementById('emailMenu');b.addEventListener('click',function(e){e.stopPropagation();m.style.display=m.style.display==='block'?'none':'block'});document.addEventListener('click',function(){m.style.display='none'});document.getElementById('copyEmail').addEventListener('click',function(e){e.preventDefault();navigator.clipboard.writeText('ebanks.daniel@gmail.com');var t=document.getElementById('toast');t.style.display='block';setTimeout(function(){t.style.display='none'},4000)})})();</script>
+<script data-goatcounter="https://scaleright.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
