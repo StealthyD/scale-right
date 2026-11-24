@@ -110,3 +110,11 @@ body.sr-cookie-open #toast{bottom:calc(var(--sr-cookie-h,200px) + 16px)}
 .legal th{background:var(--soft);color:var(--ink);font-weight:600}
 .legal td{color:var(--muted)}
 .legal strong{color:var(--ink)}
+
+/* Moved from inline style attributes. Values unchanged. */
+.email-wrap{position:relative;display:inline-block}
+#emailMenu{display:none;position:absolute;top:110%;left:0;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;min-width:210px;z-index:50;text-align:left}
+#emailMenu a{display:block;padding:10px 14px;color:#111;text-decoration:none;border-radius:6px}
+.final .cta-row{justify-content:center;align-items:center;flex-wrap:wrap;gap:16px}
+.final-or,.final-or a{color:var(--finalp)}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;display:none;z-index:999}

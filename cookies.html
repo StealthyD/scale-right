@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; script-src 'self' https://gc.zgo.at; style-src 'self'; img-src 'self' https://scaleright.goatcounter.com; font-src 'none'; connect-src 'self' https://scaleright.goatcounter.com; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Cookie Policy | Scale Right</title>
 <meta name="description" content="Cookie policy for Scale Right, including analytics, local storage, and how to manage your choices.">
 <meta name="robots" content="index, follow">
@@ -24,7 +26,7 @@
 <meta name="twitter:image:alt" content="Dan Ebanks, founder of Scale Right">
 <link rel="stylesheet" href="site.css">
 <link rel="stylesheet" href="cookie-consent.css">
-<script>(function(){try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}var d=document.documentElement,m=d.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');d.setAttribute('data-mode',m)})();</script>
+<script src="theme-init.js"></script>
 </head>
 <body>
 <nav><div class="wrap">
@@ -163,11 +165,7 @@ Ontario, Canada</p>
     <button type="button" class="foot-link-btn" id="sr-cookie-settings">Cookie settings</button>
   </nav>
 </footer>
-<script>(function(){var d=document.documentElement,b=document.getElementById('themeToggle'),mq=matchMedia('(prefers-color-scheme: dark)');
-function cur(){return d.getAttribute('data-theme')||(mq.matches?'dark':'light')}
-function sync(){var m=cur();d.setAttribute('data-mode',m);b.setAttribute('aria-label',m==='dark'?'Switch to light mode':'Switch to dark mode');b.setAttribute('aria-pressed',m==='dark')}
-b.addEventListener('click',function(){var n=cur()==='dark'?'light':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('theme',n)}catch(e){}sync()});
-mq.addEventListener&&mq.addEventListener('change',sync);sync()})();</script>
+<script src="theme-toggle.js"></script>
 <script src="cookie-consent.js" defer></script>
 </body>
 </html>
